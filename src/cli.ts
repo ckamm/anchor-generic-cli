@@ -13,12 +13,16 @@ import { handleInstruction } from "./handleInstruction";
 import { KvArg, PubkeyArg } from "./util";
 import { handleDecodeAccount } from "./handleDecodeAccount";
 
-const cmd_instruction = command({
+const commonArgs = {
+  programId: option({ type: PubkeyArg, long: "program" }),
+  rpcUrl: option({ type: string, long: "rpc" }),
+};
+
+const cmdInstruction = command({
   name: "instruction",
   args: {
+    ...commonArgs,
     instructionName: positional({ type: string, displayName: "name" }),
-    programId: option({ type: PubkeyArg, long: "program" }),
-    signers: multioption({ type: array(string), long: "signer" }),
     kvArgsList: restPositionals({
       type: KvArg,
       displayName: "account and data args",
@@ -27,19 +31,19 @@ const cmd_instruction = command({
   handler: handleInstruction,
 });
 
-const cmd_decode_account = command({
+const cmdDecodeAccount = command({
   name: "decode_account",
   args: {
-    programId: option({ type: PubkeyArg, long: "program" }),
     accountType: positional({ type: string, displayName: "account type" }),
     accountPk: positional({ type: string, displayName: "account public key" }),
+    ...commonArgs,
   },
   handler: handleDecodeAccount,
 });
 
 const app = subcommands({
   name: "commands",
-  cmds: { instruction: cmd_instruction, decode_account: cmd_decode_account },
+  cmds: { instruction: cmdInstruction, decode_account: cmdDecodeAccount },
 });
 
 async function main() {

@@ -1,28 +1,19 @@
 import * as anchor from "@project-serum/anchor";
 import { parseAccountArg, parseArg } from "./util";
+import { anchorSetup } from "./anchor";
 
 export async function handleInstruction({
-  instructionName,
   programId,
+  rpcUrl,
+  instructionName,
   kvArgsList,
   signers,
 }) {
+  const [idl, program] = await anchorSetup(rpcUrl, programId);
+
   let kvArgs = Object.fromEntries(kvArgsList);
   const initialKvArgs = { ...kvArgs };
-  const clusterUrl = "https://api.devnet.solana.com";
-  const throwAway = new anchor.web3.Keypair();
 
-  const connection = new anchor.web3.Connection(clusterUrl, "confirmed");
-
-  const walletWrapper = new anchor.Wallet(throwAway);
-
-  const provider = new anchor.Provider(connection, walletWrapper, {
-    preflightCommitment: "confirmed",
-  });
-
-  const idl = await anchor.Program.fetchIdl(programId, provider);
-
-  const program = new anchor.Program(idl, programId, provider);
   if (!(instructionName in program.instruction)) {
     throw new Error("instruction not found in program");
   }

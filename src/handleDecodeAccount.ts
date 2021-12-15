@@ -1,19 +1,13 @@
 import * as anchor from "@project-serum/anchor";
+import { anchorSetup } from "./anchor";
 
 export async function handleDecodeAccount({
+  rpcUrl,
   programId,
   accountType,
   accountPk,
 }) {
-  const clusterUrl = "https://api.devnet.solana.com";
-  const throwAway = new anchor.web3.Keypair();
-  const connection = new anchor.web3.Connection(clusterUrl, "confirmed");
-  const walletWrapper = new anchor.Wallet(throwAway);
-  const provider = new anchor.Provider(connection, walletWrapper, {
-    preflightCommitment: "confirmed",
-  });
-  const idl = await anchor.Program.fetchIdl(programId, provider);
-  const program = new anchor.Program(idl, programId, provider);
+  const [idl, program] = await anchorSetup(rpcUrl, programId);
 
   if (!program.account[accountType]) {
     console.error(
