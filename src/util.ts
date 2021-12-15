@@ -38,7 +38,23 @@ function toIdlType(typeName, value) {
   throw new Error("unknown type: " + typeName);
 }
 
-export async function parseArg(typeName, value, kvArgs, programId) {
+async function pdaKeysToSeeds(keys: string): Promise<Buffer[]> {
+  // TODO: deal with ; in quoted strings
+  return keys.split(";").map((k) => {
+    if (k.startsWith('"') && k.endsWith('"')) {
+      return Buffer.from(k.substr(1, k.length - 2));
+    }
+    // TODO: possibly allow account backreferences
+    return new anchor.web3.PublicKey(k).toBuffer();
+  });
+}
+
+export async function parseArg(
+  typeName,
+  value: string,
+  kvArgs: Object,
+  programId: anchor.web3.PublicKey
+) {
   if (typeName == "u8" && value.startsWith("BUMP:")) {
     const accountRef = value.substr(5);
     if (!(accountRef in kvArgs)) {
@@ -50,9 +66,9 @@ export async function parseArg(typeName, value, kvArgs, programId) {
         "referenced account is not a PDA: " + value + ";" + accountVal
       );
     }
-    const seed = accountVal.substr(4);
-    const addrAndBump = await anchor.web3.PublicKey.createProgramAddress(
-      [Buffer.from(seed)],
+    const seeds = await pdaKeysToSeeds(accountVal.substr(4));
+    const addrAndBump = await anchor.web3.PublicKey.findProgramAddress(
+      seeds,
       programId
     );
     return addrAndBump[1];
@@ -61,10 +77,10 @@ export async function parseArg(typeName, value, kvArgs, programId) {
 }
 
 export async function parseAccountArg(
-  key,
-  value,
-  isSigner,
-  programId
+  key: string,
+  value: string,
+  isSigner: boolean,
+  programId: anchor.web3.PublicKey
 ): Promise<[anchor.web3.PublicKey, anchor.web3.Keypair | undefined]> {
   if (isSigner) {
     if (!value.startsWith("KEYPAIR:")) {
@@ -76,14 +92,12 @@ export async function parseAccountArg(
     return [keypair.publicKey, keypair];
   }
   if (value.startsWith("PDA:")) {
-    const inner = value.substr(4);
-    return [
-      await anchor.web3.PublicKey.createProgramAddress(
-        [Buffer.from(inner)],
-        programId
-      ),
-      undefined,
-    ];
+    const seeds = await pdaKeysToSeeds(value.substr(4));
+    const addrAndBump = await anchor.web3.PublicKey.findProgramAddress(
+      seeds,
+      programId
+    );
+    return [addrAndBump[0], undefined];
   }
   return [new anchor.web3.PublicKey(value), undefined];
 }

@@ -61,6 +61,7 @@ export async function buildInstruction(
       programId
     );
 
+    //console.log(accountName, account.toBase58());
     accounts[accountName] = account;
     if (signer) {
       signers.push(signer);
