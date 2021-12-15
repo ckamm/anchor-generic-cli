@@ -11,6 +11,7 @@ import {
 } from "cmd-ts";
 import { handleInstruction } from "./handleInstruction";
 import { KvArg, PubkeyArg } from "./util";
+import { handleDecodeAccount } from "./handleDecodeAccount";
 
 const cmd_instruction = command({
   name: "instruction",
@@ -26,9 +27,19 @@ const cmd_instruction = command({
   handler: handleInstruction,
 });
 
+const cmd_decode_account = command({
+  name: "decode_account",
+  args: {
+    programId: option({ type: PubkeyArg, long: "program" }),
+    accountType: positional({ type: string, displayName: "account type" }),
+    accountPk: positional({ type: string, displayName: "account public key" }),
+  },
+  handler: handleDecodeAccount,
+});
+
 const app = subcommands({
   name: "commands",
-  cmds: { instruction: cmd_instruction },
+  cmds: { instruction: cmd_instruction, decode_account: cmd_decode_account },
 });
 
 async function main() {
