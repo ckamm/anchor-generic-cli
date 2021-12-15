@@ -1,14 +1,15 @@
 import * as anchor from "@project-serum/anchor";
-import { parseAccountArg, parseArg } from "./util";
+import { parseAccountArg, parseArg, readKeypair } from "./util";
 
 export async function anchorSetup(
   rpcUrl: string,
-  programId: anchor.web3.PublicKey
+  programId: anchor.web3.PublicKey,
+  feePayerPath: string
 ): Promise<[anchor.Idl, anchor.Program]> {
   const connection = new anchor.web3.Connection(rpcUrl, "confirmed");
 
-  const throwAway = new anchor.web3.Keypair();
-  const walletWrapper = new anchor.Wallet(throwAway);
+  const feePayer = readKeypair(feePayerPath);
+  const walletWrapper = new anchor.Wallet(feePayer);
   const provider = new anchor.Provider(connection, walletWrapper, {
     preflightCommitment: "confirmed",
   });
@@ -34,6 +35,7 @@ export async function buildInstruction(
 
   // Bind all accounts
   let accounts = {};
+  let signers = [];
   for (const accountItem of instruction.accounts) {
     // TODO: deal with composite accounts, probably do "composite.accountname=foo"
     // but composites can nest...
@@ -52,12 +54,17 @@ export async function buildInstruction(
 
     // @ts-ignore
     const isSigner = accountItem.isSigner;
-    accounts[accountName] = await parseAccountArg(
+    const [account, signer] = await parseAccountArg(
       accountName,
       value,
       isSigner,
       programId
     );
+
+    accounts[accountName] = account;
+    if (signer) {
+      signers.push(signer);
+    }
   }
 
   // Bind all fields
@@ -76,5 +83,5 @@ export async function buildInstruction(
     throw new Error("unexpected arguments: " + Object.keys(kvArgs).join(", "));
   }
 
-  return [args, { accounts }];
+  return [args, { accounts, signers }];
 }

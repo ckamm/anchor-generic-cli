@@ -16,12 +16,19 @@ import { handleDecodeAccount } from "./handleDecodeAccount";
 const commonArgs = {
   programId: option({ type: PubkeyArg, long: "program" }),
   rpcUrl: option({ type: string, long: "rpc" }),
+  feePayerPath: option({
+    type: string,
+    short: "k",
+    long: "keypair",
+    defaultValue: () => "~/.config/solana/id.json",
+  }),
 };
 
 const cmdInstruction = command({
   name: "instruction",
   args: {
     ...commonArgs,
+    action: positional({ type: string, displayName: "action" }),
     instructionName: positional({ type: string, displayName: "name" }),
     kvArgsList: restPositionals({
       type: KvArg,

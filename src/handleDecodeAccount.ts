@@ -4,10 +4,11 @@ import { anchorSetup } from "./anchor";
 export async function handleDecodeAccount({
   rpcUrl,
   programId,
+  feePayerPath,
   accountType,
   accountPk,
 }) {
-  const [idl, program] = await anchorSetup(rpcUrl, programId);
+  const [idl, program] = await anchorSetup(rpcUrl, programId, feePayerPath);
 
   if (!program.account[accountType]) {
     console.error(

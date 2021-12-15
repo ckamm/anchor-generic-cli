@@ -2,11 +2,13 @@ import * as anchor from "@project-serum/anchor";
 import { Buffer } from "buffer";
 import fs from "fs";
 import BN from "bn.js";
+import expandTilde from "expand-tilde";
 import { extendType, string } from "cmd-ts";
 
-function readKeypair(keypairPath: string): anchor.web3.Keypair {
+export function readKeypair(keypairPath: string): anchor.web3.Keypair {
+  const path = expandTilde(keypairPath);
   return anchor.web3.Keypair.fromSecretKey(
-    Buffer.from(JSON.parse(fs.readFileSync(keypairPath, "utf-8")))
+    Buffer.from(JSON.parse(fs.readFileSync(path, "utf-8")))
   );
 }
 
@@ -58,23 +60,32 @@ export async function parseArg(typeName, value, kvArgs, programId) {
   return toIdlType(typeName, value);
 }
 
-export async function parseAccountArg(key, value, isSigner, programId) {
+export async function parseAccountArg(
+  key,
+  value,
+  isSigner,
+  programId
+): Promise<[anchor.web3.PublicKey, anchor.web3.Keypair | undefined]> {
   if (isSigner) {
     if (!value.startsWith("KEYPAIR:")) {
       throw new Error(
         'expected "KEYPAIR:<file>" for signer account argument ' + key
       );
     }
-    return readKeypair(value.substr(8));
+    const keypair = readKeypair(value.substr(8));
+    return [keypair.publicKey, keypair];
   }
   if (value.startsWith("PDA:")) {
     const inner = value.substr(4);
-    return await anchor.web3.PublicKey.createProgramAddress(
-      [Buffer.from(inner)],
-      programId
-    );
+    return [
+      await anchor.web3.PublicKey.createProgramAddress(
+        [Buffer.from(inner)],
+        programId
+      ),
+      undefined,
+    ];
   }
-  return new anchor.web3.PublicKey(value);
+  return [new anchor.web3.PublicKey(value), undefined];
 }
 
 export const KvArg = extendType(string, {
