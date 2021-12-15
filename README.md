@@ -39,3 +39,6 @@ $ yarn run cli \
   rent=SysvarRent111111111111111111111111111111111 \
   registrarBump=BUMP:registrar
 ```
+
+Note that instruction fees are paid by `~/.config/solana/id.json` by default.
+Use `-k` to change.
