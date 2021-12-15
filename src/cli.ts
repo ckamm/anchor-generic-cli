@@ -1,51 +1,69 @@
 import * as anchor from "@project-serum/anchor";
-import { command, subcommands, run, string, positional, option, multioption, extendType, array, restPositionals } from 'cmd-ts';
+import {
+  command,
+  subcommands,
+  run,
+  string,
+  positional,
+  option,
+  multioption,
+  extendType,
+  array,
+  restPositionals,
+} from "cmd-ts";
 import BN from "bn.js";
-import * as fs from 'fs';
-import {Buffer} from 'buffer';
+import * as fs from "fs";
+import { Buffer } from "buffer";
 
 function readKeypair(keypairPath: string): anchor.web3.Keypair {
-  return anchor.web3.Keypair.fromSecretKey(Buffer.from(JSON.parse(fs.readFileSync(keypairPath, 'utf-8'))));
+  return anchor.web3.Keypair.fromSecretKey(
+    Buffer.from(JSON.parse(fs.readFileSync(keypairPath, "utf-8")))
+  );
 }
 
 function toIdlType(typeName, value) {
   // TODO: Possibly something could be done with anchor's TypeMap and DecodeType here
   switch (typeName) {
-    case 'u8':
-    case 'i8':
-    case 'u16':
-    case 'i16':
-    case 'u32':
-    case 'i32':
+    case "u8":
+    case "i8":
+    case "u16":
+    case "i16":
+    case "u32":
+    case "i32":
       return +value;
-    case 'u64':
-    case 'i64':
-    case 'u128':
-    case 'i128':
+    case "u64":
+    case "i64":
+    case "u128":
+    case "i128":
       return new BN(value);
-    case 'bool':
-      return value == 'true' // TODO
-    case 'string':
-      return value
-    case 'publicKey':
+    case "bool":
+      return value == "true"; // TODO
+    case "string":
+      return value;
+    case "publicKey":
       return new anchor.web3.PublicKey(value);
   }
   // vectors, options etc.
-  throw new Error('unknown type: ' + typeName);
+  throw new Error("unknown type: " + typeName);
 }
 
 async function parseArg(typeName, value, kvArgs, programId) {
-  if (typeName == 'u8' && value.startsWith('BUMP:')) {
+  if (typeName == "u8" && value.startsWith("BUMP:")) {
     const accountRef = value.substr(5);
     if (!(accountRef in kvArgs)) {
-      throw new Error('bad account reference in: ' + value);
+      throw new Error("bad account reference in: " + value);
     }
     const accountVal = kvArgs[accountRef];
-    if (!accountVal.startsWith('PDA:')) {
-      throw new Error('referenced account is not a PDA: ' + value + ';' + accountVal);
+    if (!accountVal.startsWith("PDA:")) {
+      throw new Error(
+        "referenced account is not a PDA: " + value + ";" + accountVal
+      );
     }
     const seed = accountVal.substr(4);
-    const addrAndBump = await anchor.web3.PublicKey.createProgramAddress([Buffer.from(seed)], programId);
+    const addrAndBump = await anchor.web3.PublicKey.createProgramAddress(
+      [Buffer.from(seed)],
+      programId
+    );
     return addrAndBump[1];
   }
   return toIdlType(typeName, value);
@@ -53,19 +71,29 @@ async function parseArg(typeName, value, kvArgs, programId) {
 
 async function parseAccountArg(key, value, isSigner, programId) {
   if (isSigner) {
-    if (!value.startsWith('KEYPAIR:')) {
-      throw new Error('expected "KEYPAIR:<file>" for signer account argument ' + key);
+    if (!value.startsWith("KEYPAIR:")) {
+      throw new Error(
+        'expected "KEYPAIR:<file>" for signer account argument ' + key
+      );
     }
     return readKeypair(value.substr(8));
   }
-  if (value.startsWith('PDA:')) {
-      const inner = value.substr(4);
-      return await anchor.web3.PublicKey.createProgramAddress([Buffer.from(inner)], programId);
+  if (value.startsWith("PDA:")) {
+    const inner = value.substr(4);
+    return await anchor.web3.PublicKey.createProgramAddress(
+      [Buffer.from(inner)],
+      programId
+    );
   }
   return new anchor.web3.PublicKey(value);
 }
 
-async function handleInstruction({ instructionName, programId, kvArgsList, signers }) {
+async function handleInstruction({
+  instructionName,
+  programId,
+  kvArgsList,
+  signers,
+}) {
   let kvArgs = Object.fromEntries(kvArgsList);
   const initialKvArgs = { ...kvArgs };
   const clusterUrl = "https://api.devnet.solana.com";
@@ -83,12 +111,12 @@ async function handleInstruction({ instructionName, programId, kvArgsList, signe
 
   const program = new anchor.Program(idl, programId, provider);
   if (!(instructionName in program.instruction)) {
-      throw new Error('instruction not found in program');
+    throw new Error("instruction not found in program");
   }
 
-  const instruction = idl.instructions.find(i => i.name === instructionName);
+  const instruction = idl.instructions.find((i) => i.name === instructionName);
   if (!instruction) {
-      throw new Error('instruction not found in program');
+    throw new Error("instruction not found in program");
   }
 
   // Bind all accounts
@@ -99,7 +127,7 @@ async function handleInstruction({ instructionName, programId, kvArgsList, signe
     // The correct way to test here would need IdlAccount / IdlAccounts exported.
     // @ts-ignore
     if (accountItem.accounts) {
-      throw new Error('composite fields in accounts are not supported');
+      throw new Error("composite fields in accounts are not supported");
     }
 
     const accountName = accountItem.name;
@@ -111,7 +139,12 @@ async function handleInstruction({ instructionName, programId, kvArgsList, signe
 
     // @ts-ignore
     const isSigner = accountItem.isSigner;
-    accounts[accountName] = await parseAccountArg(accountName, value, isSigner, programId);
+    accounts[accountName] = await parseAccountArg(
+      accountName,
+      value,
+      isSigner,
+      programId
+    );
   }
 
   // Bind all fields
@@ -127,17 +160,18 @@ async function handleInstruction({ instructionName, programId, kvArgsList, signe
   }
 
   if (kvArgs.length > 0) {
-    throw new Error('unexpected arguments: ' + kvArgs.map(kv => kv.key).join(', '));
+    throw new Error(
+      "unexpected arguments: " + kvArgs.map((kv) => kv.key).join(", ")
+    );
   }
 
   console.log(program.instruction[instructionName](...args, { accounts }));
 }
 
-
 const KvArg = extendType(string, {
   async from(str) {
-    const [key, ...values] = str.split('=')
-    return [key, values.join('=')];
+    const [key, ...values] = str.split("=");
+    return [key, values.join("=")];
   },
 });
 
@@ -148,23 +182,26 @@ const PubkeyArg = extendType(string, {
 });
 
 const cmd_instruction = command({
-    name: 'instruction',
-    args: {
-        instructionName: positional({ type: string, displayName: 'name' }),
-        programId: option({ type: PubkeyArg, long: 'program' }),
-        signers: multioption({ type: array(string), long: 'signer' }),
-        kvArgsList: restPositionals({ type: KvArg, displayName: 'account and data args' }),
-    },
-    handler: handleInstruction,
+  name: "instruction",
+  args: {
+    instructionName: positional({ type: string, displayName: "name" }),
+    programId: option({ type: PubkeyArg, long: "program" }),
+    signers: multioption({ type: array(string), long: "signer" }),
+    kvArgsList: restPositionals({
+      type: KvArg,
+      displayName: "account and data args",
+    }),
+  },
+  handler: handleInstruction,
 });
 
 const app = subcommands({
-    name: 'commands',
-    cmds: { instruction: cmd_instruction },
+  name: "commands",
+  cmds: { instruction: cmd_instruction },
 });
 
 async function main() {
-   run(app, process.argv.slice(2));
+  run(app, process.argv.slice(2));
 }
 
 main();
