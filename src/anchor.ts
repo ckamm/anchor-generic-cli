@@ -15,6 +15,13 @@ export async function anchorSetup(
   });
 
   const idl = await anchor.Program.fetchIdl(programId, provider);
+  if (!idl) {
+    console.error(
+      "IDL for anchor not found! Please ensure that the program has an on-chain IDL."
+    );
+    process.exit(1);
+  }
+
   const program = new anchor.Program(idl, programId, provider);
   return [idl, program];
 }
