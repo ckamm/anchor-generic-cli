@@ -1,7 +1,7 @@
-Examples
-========
+# Examples
 
 Look at program accounts:
+
 ```
 $ yarn run cli \
   --rpc https://api.devnet.solana.com \
@@ -23,6 +23,7 @@ decoding registrar:92xCzGM7YgfMyTZDAWfh87g2f7i9DqwYZhDFW1C9utNc...
 ```
 
 Send instructions:
+
 ```
 $ yarn run cli \
   --rpc https://api.devnet.solana.com \

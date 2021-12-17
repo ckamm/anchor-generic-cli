@@ -80,9 +80,32 @@ export async function buildInstruction(
     args.push(await parseArg(arg.type, value, initialKvArgs, programId));
   }
 
+  // Accept remainingAccounts
+  // TODO: Allow signers/writables
+  let remainingAccounts = undefined;
+  if (kvArgs.remainingAccount) {
+    remainingAccounts = [];
+    for (const [_, value] of kvArgsList.filter(
+      (kv) => kv[0] == "remainingAccount"
+    )) {
+      const [account, _] = await parseAccountArg(
+        "remainingAccount",
+        value,
+        false,
+        programId
+      );
+      remainingAccounts.push({
+        pubkey: account,
+        isWritable: false,
+        isSigner: false,
+      });
+    }
+    delete kvArgs.remainingAccount;
+  }
+
   if (Object.keys(kvArgs).length > 0) {
     throw new Error("unexpected arguments: " + Object.keys(kvArgs).join(", "));
   }
 
-  return [args, { accounts, signers }];
+  return [args, { accounts, remainingAccounts, signers }];
 }

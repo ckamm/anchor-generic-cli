@@ -51,6 +51,5 @@ export async function handleDecodeAccount({
     process.exit(1);
   }
   const account = await program.account[accountType].fetch(accountPk);
-  console.log(`decoding ${accountType}:${accountPk}...`);
   console.log(objToString(account, 0));
 }

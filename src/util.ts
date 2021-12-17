@@ -14,6 +14,13 @@ export function readKeypair(keypairPath: string): anchor.web3.Keypair {
 
 function toIdlType(typeName, value) {
   // TODO: Possibly something could be done with anchor's TypeMap and DecodeType here
+
+  // @ts-ignore
+  if (typeName.option) {
+    if (value === undefined) return undefined;
+    return toIdlType(typeName.option, value);
+  }
+
   switch (typeName) {
     case "u8":
     case "i8":
@@ -97,6 +104,7 @@ export async function parseAccountArg(
       seeds,
       programId
     );
+    console.log("PDA", key, addrAndBump[0].toBase58());
     return [addrAndBump[0], undefined];
   }
   return [new anchor.web3.PublicKey(value), undefined];
