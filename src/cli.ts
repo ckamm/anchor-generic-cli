@@ -11,7 +11,7 @@ import {
 } from "cmd-ts";
 import { handleInstruction } from "./handleInstruction";
 import { KvArg, PubkeyArg } from "./util";
-import { handleDecodeAccount } from "./handleDecodeAccount";
+import { handleDecodeAccount, handleDecodeAllAccounts } from "./handleDecodeAccount";
 
 const commonArgs = {
   programId: option({ type: PubkeyArg, long: "program" }),
@@ -48,9 +48,18 @@ const cmdDecodeAccount = command({
   handler: handleDecodeAccount,
 });
 
+const cmdDecodeAllAccounts = command({
+  name: "decode_all_accounts",
+  args: {
+    accountType: positional({ type: string, displayName: "account type" }),
+    ...commonArgs,
+  },
+  handler: handleDecodeAllAccounts,
+});
+
 const app = subcommands({
   name: "commands",
-  cmds: { instruction: cmdInstruction, decode_account: cmdDecodeAccount },
+  cmds: { instruction: cmdInstruction, decode_account: cmdDecodeAccount, decode_all_accounts: cmdDecodeAllAccounts },
 });
 
 async function main() {

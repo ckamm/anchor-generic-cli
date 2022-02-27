@@ -57,6 +57,11 @@ Use `-k` to change.
 
 Use `decode_account <idl account type name> <address>` to fetch and print data.
 
+## decode_all_accounts Command
+
+Use `decode_all_accounts <idl account type name>` to fetch and print data for all accounts
+of that type.
+
 ## instruction send Command
 
 Use `instruction send <idl instruction name> <args>` to build an instruction and
